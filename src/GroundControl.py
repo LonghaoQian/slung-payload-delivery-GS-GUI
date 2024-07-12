@@ -14,7 +14,6 @@ def start_rviz(config_file):
         print("RViz started:", config_file)
     except Exception as e:
         print("Failed to start RViz:", str(e))
-
 if __name__ == "__main__":
     # init rosTrackingReference
     ros_node.rospy.init_node("GUI_Node_py")
@@ -29,7 +28,7 @@ if __name__ == "__main__":
     rosSingleDroneThread = ros_node.SingleDroneRosThread(ui)
     rosSingleDroneThread.start()
     rosWaterSampleThread = ros_node.WaterSampleRosThread(ui)
-    rosWaterSampleThread.start()
+    rosWaterSampleThread.start()    
     
     # show the window
     WaterSamplingGroundControlStation.show()

@@ -18,7 +18,7 @@ class WaterSampleRosNode(QObject):
         #self.payload_pos_vel_sub = rospy.Subscriber("/encoder/speed_payload", Vector3Stamped, self.payload_pos_spd_callback)
 
         # define publishers
-        self.cmd_length_pub = rospy.Publisher("/encoder/setpoint_length", Vector3Stamped, queue_size=10)
+        self.cmd_length_pub = rospy.Publisher("/stepper/setpoint_length", Vector3Stamped, queue_size=10)
 
 
         self.rate = rospy.Rate(5)
@@ -39,7 +39,6 @@ class WaterSampleRosNode(QObject):
         length_msg.header.stamp = rospy.Time.now()
         length_msg.vector.z = len
         self.cmd_length_pub.publish(length_msg)
-
         
     def run(self):
         while not rospy.is_shutdown():

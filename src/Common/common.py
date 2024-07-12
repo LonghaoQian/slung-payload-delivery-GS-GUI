@@ -2,7 +2,7 @@
 import ROS_Node.ros_common as ros_common
 from PyQt5.QtCore import QMutex
 from scipy.spatial.transform import Rotation
-
+import numpy as np
 
 class CommonData(): # store the data from the ROS nodes
     def __init__(self):
@@ -96,7 +96,22 @@ class CommonData(): # store the data from the ROS nodes
         self.lock.unlock()
         return
     
+    def update_body_rate_target(self, x, y, z, thrust):
+        if not self.lock.tryLock():
+            return
+        euler_rate = self.body_rate_to_euler_rate(x, y, z)
+        self.current_attitude_target.roll = euler_rate[0]
+        self.current_attitude_target.pitch = euler_rate[1]
+        self.current_attitude_target.yaw = euler_rate[2]
+        self.current_attitude_target.thrust = thrust
+        self.lock.unlock()
+        return
+    
     def quat_to_euler(self, x, y, z, w):
+        # guard from NaN or 0 quaternion
+        if x == 0 and y == 0 and z == 0 and w == 0:
+            return [0, 0, 0]
+        
         r = Rotation.from_quat([x, y, z, w])
         euler = r.as_euler('xyz', degrees=True)
 
@@ -105,6 +120,23 @@ class CommonData(): # store the data from the ROS nodes
             euler[2] = euler[2] + 360
 
         return euler
+    
+    def body_rate_to_euler_rate(self, x, y, z):
+        phi = self.current_imu.roll
+        theta = self.current_imu.pitch
+
+        # if theta is 90 or -90, the transformation matrix will have a division by 0, return 0 in this case
+        if abs(np.cos(theta)) < 1e-8:
+            return [0, 0, 0]
+
+        transformation_matrix = np.array([
+            [1, np.sin(phi) * np.tan(theta), np.cos(phi) * np.tan(theta)],
+            [0, np.cos(phi), -np.sin(phi)],
+            [0, np.sin(phi) / np.cos(theta), np.cos(phi) / np.cos(theta)]
+        ])
+        body_rate = np.array([x, y, z])
+        return np.dot(transformation_matrix, body_rate)
+        
     
     def update_estimator_type(self, indoor_mode):
         if not self.lock.tryLock():

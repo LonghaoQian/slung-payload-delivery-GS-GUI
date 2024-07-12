@@ -31,8 +31,8 @@ class SingleDroneRosNode(QObject):
         self.estimator_type_sub = rospy.Subscriber('/estimator_type', Bool, callback=self.estimator_type_sub)
 
         # define publishers / services
-        self.coords_pub = rospy.Publisher('tracking_controller/target', TrackingReference, queue_size=10)
-        self.geofence_pub = rospy.Publisher('tracking_controller/geofence', Marker, queue_size=1)
+        self.coords_pub = rospy.Publisher('position_controller/target', TrackingReference, queue_size=10)
+        self.geofence_pub = rospy.Publisher('position_controller/geofence', Marker, queue_size=1)
 
         self.set_home_override_service = rospy.ServiceProxy('state_estimator/override_set_home', Empty)
         self.set_home_service = rospy.ServiceProxy('mavros/cmd/set_home', CommandHome)
@@ -77,7 +77,10 @@ class SingleDroneRosNode(QObject):
         self.data_struct.update_state(msg.connected, msg.armed, msg.manual_input, msg.mode, msg.header.stamp.secs)
 
     def commanded_attitude_sub(self, msg):
-        self.data_struct.update_attitude_target(msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w, msg.thrust)
+        if msg.orientation.x != 0 or msg.orientation.y != 0 and msg.orientation.z != 0 and msg.orientation.w != 0:
+            self.data_struct.update_attitude_target(msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w, msg.thrust)
+            return
+        self.data_struct.update_body_rate_target(msg.body_rate.x, msg.body_rate.y, msg.body_rate.z, msg.thrust)
 
     def estimator_type_sub(self, msg):
         self.data_struct.update_estimator_type(msg.data)

@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Marker1/Status1
+        - /Marker1
         - /Odometry1
       Splitter Ratio: 0.5
     Tree Height: 708
@@ -55,10 +55,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /tracking_controller/geofence
+      Marker Topic: /position_controller/geofence
       Name: Marker
       Namespaces:
-        geofence: true
+        {}
       Queue Size: 100
       Value: true
     - Angle Tolerance: 0.0010000000474974513
@@ -160,5 +160,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1908
-  X: 0
-  Y: 0
+  X: -32
+  Y: -32
