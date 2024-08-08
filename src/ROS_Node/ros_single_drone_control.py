@@ -12,6 +12,7 @@ from nav_msgs.msg import Odometry
 import json
 from fsc_autopilot_ros.msg import TrackingReference
 from std_msgs.msg import Bool
+from geographic_msgs.msg import GeoPointStamped
 
 class SingleDroneRosNode(QObject):
     ## define signals
@@ -23,7 +24,7 @@ class SingleDroneRosNode(QObject):
         # define subscribers
         self.imu_sub = rospy.Subscriber('mavros/imu/data', Imu, callback=self.imu_sub)
         self.pos_global_sub = rospy.Subscriber('mavros/global_position/global', NavSatFix, callback=self.pos_global_sub)
-        self.pos_local_adjusted_sub = rospy.Subscriber('state_estimator/local_position/odom/UAV0', Odometry, callback=self.pos_local_sub)
+        self.pos_local_sub = rospy.Subscriber('state_estimator/local_position/odom/UAV0', Odometry, callback=self.pos_local_sub)
         self.vel_sub = rospy.Subscriber('state_estimator/local_position/odom/UAV0', Odometry, callback=self.vel_sub)
         self.bat_sub = rospy.Subscriber('mavros/battery', BatteryState, callback=self.bat_sub)
         self.status_sub = rospy.Subscriber('mavros/state', State, callback=self.status_sub)
@@ -33,9 +34,9 @@ class SingleDroneRosNode(QObject):
         # define publishers / services
         self.coords_pub = rospy.Publisher('position_controller/target', TrackingReference, queue_size=1)
         self.geofence_pub = rospy.Publisher('tracking_controller/geofence', Marker, queue_size=1)
-
-        self.set_home_override_service = rospy.ServiceProxy('state_estimator/override_set_home', Empty)
+        self.reset_ekf_pub = rospy.Publisher('mavros/global_position/set_gp_origin', GeoPointStamped, queue_size=1)
         self.set_home_service = rospy.ServiceProxy('mavros/cmd/set_home', CommandHome)
+
 
         self.arming_service = rospy.ServiceProxy('mavros/cmd/command', CommandLong)
         self.land_service = rospy.ServiceProxy('mavros/cmd/command', CommandLong)
@@ -292,13 +293,21 @@ class SingleDroneRosThread:
             self.ui.POSCTL.setEnabled(False)
     
     def send_set_home_request(self):
-        self.ros_object.set_home_override_service()
         home_position = CommandHomeRequest()
         home_position.latitude = self.global_pos_msg.latitude
         home_position.longitude = self.global_pos_msg.longitude
         home_position.altitude = self.global_pos_msg.altitude
         response = self.ros_object.set_home_service(home_position)
         print(response)
+
+        # send gps reset message
+        originMsg = GeoPointStamped()
+        originMsg.header.stamp = rospy.Time.now()
+        originMsg.position.latitude = self.global_pos_msg.latitude
+        originMsg.position.longitude = self.global_pos_msg.longitude
+        originMsg.position.altitude = self.global_pos_msg.altitude
+        self.ros_object.reset_ekf_pub.publish(originMsg)
+        print("EKF origin reset")
 
     def send_coordinates(self):
         # if text is inalid, warn user
