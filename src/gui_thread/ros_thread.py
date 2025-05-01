@@ -39,6 +39,9 @@ class GuiRosThread:
         self.layout = QtWidgets.QVBoxLayout(ui.plotWidget)  # Replace plotWidget with your placeholder widget's name
         self.layout.addWidget(self.canvas)
 
+    def setup_ros_node(self):
+        pass
+
     def setup_thread(self, thread_func):
         self.ros_object.moveToThread(self.thread)
         # self.lock = thrustData.lock

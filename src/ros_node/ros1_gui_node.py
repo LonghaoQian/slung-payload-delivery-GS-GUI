@@ -1,3 +1,8 @@
+"""
+This is the ros node class definiting all publishers,
+subscribers and Qt singals.
+"""
+
 import rospy
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from PyQt5.QtCore import Qt
@@ -5,13 +10,6 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QStringListModel
 from PyQt5 import QtWidgets
 from ros_node import *
-
-ROS_FREQ = 30 # Hz, enough for display and control
-
-"""
-This is the ros node class definiting all publishers,
-subscribers and Qt singals.
-"""
 
 class RosMotorStandControlNode(QObject):
     # define signals
