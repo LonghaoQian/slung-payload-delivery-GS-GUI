@@ -20,29 +20,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 """
-
-import os
-
-def detect_ros_version():
-    ros_version = os.environ.get('ROS_VERSION')
-    if ros_version == '1':
-        return 'ROS 1'
-    elif ros_version == '2':
-        return 'ROS 2'
-    else:
-        # Fallback: try importing modules
-        try:
-            import rclpy
-            return 'ROS 2 (detected via import)'
-        except ImportError:
-            pass
-
-        try:
-            import rospy
-            return 'ROS 1 (detected via import)'
-        except ImportError:
-            pass
-
-        return 'Unknown ROS version (neither environment variable nor imports worked)'
+import rospy
+from std_msgs.msg import String
+ 
+def talker():
+    pub = rospy.Publisher('chatter', String, queue_size=10)
+    rospy.init_node('talker', anonymous=True)
+    rate = rospy.Rate(2) # 2hz
+    while not rospy.is_shutdown():
+         hello_str = "hello world %s" % rospy.get_time()
+         rospy.loginfo(hello_str)
+         pub.publish(hello_str)
+         rate.sleep()
+ 
+if __name__ == '__main__':
+    try:
+        talker()
+    except rospy.ROSInterruptException:
+        pass

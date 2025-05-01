@@ -20,29 +20,17 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 """
 
+import sys
 import os
 
-def detect_ros_version():
-    ros_version = os.environ.get('ROS_VERSION')
-    if ros_version == '1':
-        return 'ROS 1'
-    elif ros_version == '2':
-        return 'ROS 2'
-    else:
-        # Fallback: try importing modules
-        try:
-            import rclpy
-            return 'ROS 2 (detected via import)'
-        except ImportError:
-            pass
+# Add parent directory to sys.path
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
 
-        try:
-            import rospy
-            return 'ROS 1 (detected via import)'
-        except ImportError:
-            pass
+import gui_thread as gui_thread
 
-        return 'Unknown ROS version (neither environment variable nor imports worked)'
+if __name__ == '__main__':
+    ros_version = gui_thread.detect_ros_version()
+    print(f"ros version is {ros_version}")
