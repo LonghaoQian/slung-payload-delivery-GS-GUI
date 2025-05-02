@@ -25,6 +25,7 @@ SOFTWARE.
 
 import os
 
+# a function to detect the version of ros
 def detect_ros_version():
     ros_version = os.environ.get('ROS_VERSION')
     if ros_version == '1':

@@ -32,47 +32,64 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QStringListModel
 from PyQt5 import QtWidgets
-from ros_node import *
+import ros_node
+import threading
 
-class RosMotorStandControlNode(QObject):
+
+# augment the ros subscriber with watchdog feature
+class SubscriberWatchdog:
+    def __init__(self, topic_name, msg_type, callback_func, timeout_sec):
+        self.timeout = timeout_sec
+        self.last_msg_time = rospy.Time.now()
+        self.lock = threading.Lock()
+        self.callback_func = callback_func
+        self.sub = rospy.Subscriber(topic_name, msg_type, self.callback)
+
+    def callback(self, msg):
+        with self.lock:
+            self.last_msg_time = rospy.Time.now()
+            self.callback_func(msg)
+
+    def check(self):
+        with self.lock:
+            time_since_last = (rospy.Time.now() - self.last_msg_time).to_sec()
+        return time_since_last < self.timeout
+
+class GroundStationRos1Node(QObject):
     # signals used in Qt to do synchronization
     update_data = pyqtSignal(int)
     def __init__(self):
         super().__init__()
         # subscribers
-        self.esp_encoder_sub = rospy.Subscriber(GroundStationRosTopics["esp_encoder"].topic,
-                                                GroundStationRosTopics["esp_encoder"].data_type,
+        self.esp_encoder_sub = SubscriberWatchdog(ros_node.GroundStationRosTopics["esp_encoder"].topic,
+                                                ros_node.GroundStationRosTopics["esp_encoder"].data_type,
                                                 callback=self.esp_msg_sub)
         # publishers
-        self.stepper_motor_mod_pub = rospy.Publisher(GroundStationRosTopics["stepper_motor_mode_select"].topic,
-                                                      GroundStationRosTopics["stepper_motor_mode_select"].data_type,
+        self.stepper_motor_mod_pub = rospy.Publisher(ros_node.GroundStationRosTopics["stepper_motor_mode_select"].topic,
+                                                      ros_node.GroundStationRosTopics["stepper_motor_mode_select"].data_type,
                                                       queue_size=10)
     
-        self.stepper_vel_direct_pub = rospy.Publisher(GroundStationRosTopics["stepper_vel_direct"].topic,
-                                                      GroundStationRosTopics["stepper_vel_direct"].data_type,
+        self.stepper_vel_direct_pub = rospy.Publisher(ros_node.GroundStationRosTopics["stepper_vel_direct"].topic,
+                                                      ros_node.GroundStationRosTopics["stepper_vel_direct"].data_type,
                                                       queue_size=10)
 
-        self.stepper_pos_pub = rospy.Publisher(GroundStationRosTopics["stepper_pos"].topic,
-                                               GroundStationRosTopics["stepper_pos"].data_type,
+        self.stepper_pos_pub = rospy.Publisher(ros_node.GroundStationRosTopics["stepper_pos"].topic,
+                                               ros_node.GroundStationRosTopics["stepper_pos"].data_type,
                                                queue_size=10)
 
-        self.stepper_pos_pub = rospy.Publisher(GroundStationRosTopics["stepper_vel_auto"].topic,
-                                               GroundStationRosTopics["stepper_vel_auto"].data_type,
+        self.stepper_pos_pub = rospy.Publisher(ros_node.GroundStationRosTopics["stepper_vel_auto"].topic,
+                                               ros_node.GroundStationRosTopics["stepper_vel_auto"].data_type,
                                                queue_size=10)
 
         # ros setup
-        self.rate = rospy.Rate(ROS_FREQ)
+        self.rate = rospy.Rate(ros_node.ROS_FREQ)
         
         # local variable setup
-        self.angleX = 0.0
-        self.angleY = 0.0
-        self.cable_len = 0.0
-        self.angleX_vel = 0.0
-        self.angleY_vel = 0.0
-        self.cable_vel = 0.0
+        self.encoder_info = ros_node.EncoderInfo()
 
         # self.res = TwistStamped()
         # self.is_publishing = False
+        self.lock = threading.Lock()
     
     # ### define signal connections to / from gui ###100
     # def connect_update_gui(self, callback):
@@ -80,13 +97,12 @@ class RosMotorStandControlNode(QObject):
 
     ### define callback functions from ros topics ###
     def esp_msg_sub(self, msg):
-        # get orientation and convert to euler angles
-        self.angleX = msg.twist.linear.x
-        self.angleY = msg.twist.linear.y
-        self.cable_len = msg.twist.linear.z
-        self.angleX_vel = msg.twist.angular.x
-        self.angleY_vel = msg.twist.angular.y
-        self.cable_vel = msg.twist.angular.z
+        self.encoder_info.angleX = msg.twist.linear.x
+        self.encoder_info.angleY = msg.twist.linear.y
+        self.encoder_info.cable_len = msg.twist.linear.z
+        self.encoder_info.angleX_vel = msg.twist.angular.x
+        self.encoder_info.angleY_vel = msg.twist.angular.y
+        self.encoder_info.cable_vel = msg.twist.angular.z
 
     def publish_motor_mode(self, mode):
         pass
@@ -94,6 +110,12 @@ class RosMotorStandControlNode(QObject):
         #     self.motor_msg.motors[i] = throttle
         # self.throttle_pub.publish(self.motor_msg)
     
+    def get_encoder_status(self):
+        return self.esp_encoder_sub.check()
+
+    def get_encoder_data(self):
+        return self.encoder_info
+
     # main loop of ros node
     def run(self):
         while not rospy.is_shutdown():

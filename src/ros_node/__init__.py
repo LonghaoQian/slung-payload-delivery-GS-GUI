@@ -1,2 +1,2 @@
-from .ros_test_node import *
 from .ros_common import *
+from .ros1_gui_node import *

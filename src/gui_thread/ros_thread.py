@@ -30,17 +30,20 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QStringListModel
 from PyQt5 import QtWidgets
+import gui_thread
+import ros_node
 
 class GuiRosThread:
-    def __init__(self, ui):
+    def __init__(self, ui, ros_version=None):
         super().__init__()
+        self.ros_version = ros_version
         # self.ros_object = RosMotorStandControlNode()
         # self.throttle_profile_object = ul.ThrottleProfile(freq=ROS_FREQ)
         self.thread = QThread()
 
         # setup signals
         self.ui = ui
-        # self.set_ros_callbacks() # setup the interaction between ros and Qt gui
+        self.set_ros_callbacks() # setup the interaction between ros and Qt gui
         # through Qt singal-and-slot mechanism
 
         # move and start thread
@@ -58,12 +61,24 @@ class GuiRosThread:
 
         # canvas
         # Add Matplotlib canvas to the UI
-        self.canvas = gui.MplCanvas(parent=ui, width=7, height=3, dpi=50)
+        # self.canvas = gui.MplCanvas(parent=ui, width=7, height=3, dpi=50)
         self.layout = QtWidgets.QVBoxLayout(ui.plotWidget)  # Replace plotWidget with your placeholder widget's name
         self.layout.addWidget(self.canvas)
 
     def setup_ros_node(self):
-        pass
+        if self.ros_version == None:
+            self.ros_version = gui_thread.detect_ros_version() # if version is not set, use auto detection.
+        print(f"current ros version is {self.ros_version}")
+        if self.ros_version == 'ROS 1':
+            self.ros_object = ros_node.GroundStationRos1Node()
+            return
+        if self.ros_version == 'ROS 2':
+            # right now ROS 2 node is not completed
+            # so for now it will raise an error
+            raise Exception("ROS 2 detected! However, ROS2 version is not completed")
+            # return
+        raise Exception("Error determing the ROS version on this computer!\
+                        You can try manually setting the ROS version.")
 
     def setup_thread(self, thread_func):
         self.ros_object.moveToThread(self.thread)

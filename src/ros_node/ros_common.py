@@ -50,3 +50,12 @@ class IMUinfo:
         self.ax = ax
         self.ay = ay
         self.az = az
+
+class EncoderInfo:
+    def __init__(self):
+        self.angleX = 0.0
+        self.angleY = 0.0
+        self.cable_len = 0.0
+        self.angleX_vel = 0.0
+        self.angleY_vel = 0.0
+        self.cable_vel = 0.0
